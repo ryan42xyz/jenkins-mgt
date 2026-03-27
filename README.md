@@ -1,6 +1,33 @@
 # Jenkins Management Dashboard
 
-一个功能强大的 Jenkins 信息汇集和管理工具，提供现代化的 Web 界面和高级管理功能。
+## 为什么做这个
+
+Jenkins 原生 UI 是为单任务设计的：每次只能看一个 job、翻一个 build、找一组参数。当 CI/CD 流程变复杂之后，这套交互变得很低效：
+
+- **pipeline 是串联的**。一次镜像发布要经过 entrypoint → pre-process → build-image → deploy 多个 job，但 Jenkins 没有统一视图，每个 job 都要单独打开页面确认状态。
+- **参数分散、难以追溯**。上次用什么参数跑成功的？要进 build detail → parameters 一层层找，想复用一次要点很多下。
+- **多环境切换摩擦大**。新旧两套 Jenkins 实例之间，要来回切换浏览器 tab，URL 不同、认证不同。
+- **replay 麻烦**。失败了想用同一组参数重试，原生操作路径很深。
+
+这个工具做的事情很简单：**把所有 job 的状态、最近构建记录、参数，汇聚到一个页面**，按照实际的 pipeline 顺序排列，让日常的构建管理操作不用再在多个 Jenkins 页面之间跳来跳去。
+
+核心使用场景：
+1. 每天上班第一眼看整体构建健康状态
+2. 出问题时快速定位是哪个 job 挂了、挂在哪个参数上
+3. 用上一次成功构建的参数一键 replay
+4. 在新旧 Jenkins 环境之间快速对比
+
+---
+
+## 📸 Screenshots
+
+### Dashboard Overview
+![Dashboard Overview](screenshot-dashboard-overview.png)
+
+### Job Detail View
+![Job Detail View](screenshot-job-detail.png)
+
+---
 
 ## ✨ 核心特性
 
