@@ -1,0 +1,20 @@
+# Credentials
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Logs & scratch
+nohup.out
+*.log
+htmlcov/
+.coverage
+
+# Editor / tool artifacts
+.cursorignore
+.cursorrules
+.cursorrules.dev
+tools/

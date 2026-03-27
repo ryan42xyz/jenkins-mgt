@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Management Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .status-success { color: #28a745; }
+        .status-failure { color: #dc3545; }
+        .status-unstable { color: #ffc107; }
+        .status-aborted { color: #6c757d; }
+        .status-running { color: #007bff; }
+        .status-pending { color: #17a2b8; }
+        .status-unknown { color: #868e96; }
+        .btn-sm { margin: 1px; }
+        .table-responsive { margin-top: 20px; }
+        .search-section { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        
+        /* Network Error Styles */
+        .network-error-row {
+            background-color: #f8d7da !important;
+            border: 2px solid #dc3545 !important;
+        }
+        
+        .error-description {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            background-color: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 4px solid #dc3545;
+            margin-top: 5px;
+            word-break: break-word;
+        }
+        
+        .vpn-alert {
+            background: linear-gradient(135deg, #dc3545, #e74c3c);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(220, 53, 69, 0.3);
+        }
+        
+        /* Environment Selector Styles */
+        .environment-selector {
+            min-width: 250px;
+        }
+        
+        .environment-item {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .environment-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .environment-item.active {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .environment-status {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+        
+        .switching-environment {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        /* Parameter cell styles */
+        .parameter-cell {
+            /* Remove max-width and text-overflow to show full parameters */
+            word-wrap: break-word;
+            overflow: visible;
+            white-space: normal;
+        }
+        
+        .parameter-text {
+            display: block;
+            word-break: break-all;
+            white-space: normal;
+            line-height: 1.4;
+        }
+        
+        .parameter-expandable {
+            position: relative;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        
+        .parameter-toggle {
+            color: #007bff;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-decoration: underline;
+            margin-left: 5px;
+            white-space: nowrap;
+        }
+        
+        .parameter-toggle:hover {
+            color: #0056b3;
+        }
+        
+        .parameter-full {
+            word-break: break-all;
+            white-space: normal;
+        }
+        
+        .parameter-short {
+            word-break: break-all;
+            white-space: normal;
+        }
+        
+        /* Table responsive improvements */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .table th, .table td {
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        
+        /* Specific column width controls */
+        .table th:nth-child(1) { 
+            min-width: 120px; 
+            max-width: 180px;
+            width: 150px;
+        } /* Job Name - 缩短 */
+        .table th:nth-child(2) { min-width: 70px; }  /* Latest Build */
+        .table th:nth-child(3) { min-width: 70px; }  /* Latest Success */
+        .table th:nth-child(4) { min-width: 80px; }  /* Status */
+        .table th:nth-child(5) { min-width: 110px; } /* Last Build Time */
+        .table th:nth-child(6) { min-width: 70px; }  /* Commit */
+        .table th:nth-child(7) { min-width: 140px; } /* Actions */
+        .table th:nth-child(8) { 
+            min-width: 280px;
+            max-width: 350px; 
+            width: 320px;
+            white-space: normal;
+        } /* Latest Parameters - 增加宽度 */
+        .table th:nth-child(9) { min-width: 110px; } /* Jenkinsfile */
+        
+        /* Parameter cell specific styling */
+        .table td:nth-child(8) {
+            min-width: 280px;
+            max-width: 350px;
+            width: 320px;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+        
+        /* Job Name cell styling - 允许换行和省略 */
+        .table td:nth-child(1) {
+            max-width: 180px;
+            width: 150px;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Folder Structure Styles */
+        .folder-header {
+            background: linear-gradient(135deg, #007bff, #0056b3) !important;
+            border: none !important;
+        }
+        
+        .folder-title {
+            font-weight: bold;
+            padding: 12px 15px !important;
+            font-size: 1.1em;
+            border-radius: 4px;
+        }
+        
+        .folder-title i {
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+        
+        .folder-separator {
+            background-color: transparent !important;
+            border: none !important;
+        }
+        
+        .pipeline-row {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        
+        .pipeline-row:hover {
+            background-color: #e9ecef !important;
+        }
+        
+        .pipeline-cell {
+            padding-left: 20px !important;
+        }
+        
+        .pipeline-order {
+            font-size: 0.8em;
+            min-width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #6c757d !important;
+            color: white !important;
+        }
+        
+        .pipeline-order.order-1 { background-color: #28a745 !important; }
+        .pipeline-order.order-2 { background-color: #007bff !important; }
+        .pipeline-order.order-3 { background-color: #ffc107 !important; color: #212529 !important; }
+        .pipeline-order.order-4 { background-color: #fd7e14 !important; }
+        .pipeline-order.order-5 { background-color: #dc3545 !important; }
+        
+        /* Alternative coloring for different folders */
+        .folder-header:nth-of-type(4n+1) {
+            background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+        }
+        
+        .folder-header:nth-of-type(4n+2) {
+            background: linear-gradient(135deg, #17a2b8, #138496) !important;
+        }
+        
+        .folder-header:nth-of-type(4n+3) {
+            background: linear-gradient(135deg, #6f42c1, #5a32a3) !important;
+        }
+        
+        .folder-header:nth-of-type(4n+4) {
+            background: linear-gradient(135deg, #fd7e14, #e8690b) !important;
+        }
+        
+        /* Corresponding pipeline row colors */
+        .folder-header:nth-of-type(4n+1) + .pipeline-row,
+        .folder-header:nth-of-type(4n+1) + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+1) + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+1) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+1) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row {
+            border-left-color: #28a745;
+        }
+        
+        .folder-header:nth-of-type(4n+2) + .pipeline-row,
+        .folder-header:nth-of-type(4n+2) + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+2) + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+2) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+2) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row {
+            border-left-color: #17a2b8;
+        }
+        
+        .folder-header:nth-of-type(4n+3) + .pipeline-row,
+        .folder-header:nth-of-type(4n+3) + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+3) + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+3) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+3) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row {
+            border-left-color: #6f42c1;
+        }
+        
+        .folder-header:nth-of-type(4n+4) + .pipeline-row,
+        .folder-header:nth-of-type(4n+4) + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+4) + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+4) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row,
+        .folder-header:nth-of-type(4n+4) + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row + .pipeline-row {
+            border-left-color: #fd7e14;
+        }
+        
+        /* Folder Collapse Styles */
+        .folder-toggle {
+            transition: transform 0.3s ease;
+            padding: 5px;
+        }
+        
+        .folder-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .folder-content {
+            transition: all 0.3s ease;
+        }
+        
+        .folder-content.collapsed {
+            display: none;
+        }
+        
+        .folder-header:hover {
+            background: linear-gradient(135deg, rgba(0,123,255,0.9), rgba(0,86,179,0.9)) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .folder-toggle i {
+            font-size: 1.1em;
+            transition: transform 0.3s ease;
+        }
+        
+        .folder-header[data-collapsed="true"] .folder-toggle i {
+            transform: rotate(-90deg);
+        }
+        
+        /* Job expansion styles */
+        .job-expand-btn {
+            border: none !important;
+            background: transparent !important;
+            color: #6c757d !important;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem !important;
+            transition: all 0.3s ease;
+        }
+        
+        .job-expand-btn:hover {
+            color: #007bff !important;
+            background: rgba(0, 123, 255, 0.1) !important;
+        }
+        
+        .job-expand-btn[data-expanded="true"] i {
+            transform: rotate(-180deg);
+        }
+        
+        .job-build-row {
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+        }
+        
+        .job-build-row:hover {
+            background-color: #e9ecef;
+        }
+        
+        .job-build-row td {
+            padding: 0.25rem 0.75rem;
+            vertical-align: middle;
+        }
+        
+        .job-build-row .btn-xs {
+            padding: 0.125rem 0.25rem;
+            font-size: 0.75rem;
+            margin: 0 0.125rem;
+        }
+        
+        /* Parameters column width and text wrapping */
+        .parameter-cell {
+            max-width: 300px;
+            width: 300px;
+        }
+        
+        .parameter-text {
+            word-wrap: break-word;
+            word-break: break-all;
+            white-space: pre-wrap;
+            max-width: 100%;
+            display: block;
+            line-height: 1.3;
+        }
+        
+        /* Parameters column for the main table */
+        th:nth-child(8), td:nth-child(8) {
+            max-width: 300px;
+            width: 300px;
+        }
+        
+        /* Build history parameters styling */
+        .job-build-row .parameter-text {
+            max-width: 250px;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+                    <h1 class="mb-0">
+                        <i class="fas fa-cogs"></i> Jenkins Management Dashboard
+                    </h1>
+                    <div class="environment-selector">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="environmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-server"></i> <span id="currentEnvironmentName">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="environmentDropdown" id="environmentDropdownMenu">
+                                <li><span class="dropdown-item text-muted"><i class="fas fa-spinner fa-spin"></i> Loading environments...</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search Section -->
+                <div class="search-section">
+                    <h5><i class="fas fa-search"></i> Quick Search</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text">Job Name</span>
+                                <input type="text" class="form-control" id="jobNameInput" placeholder="Enter job name">
+                                <button class="btn btn-outline-primary" type="button" onclick="searchJob()">Search</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text">Build ID</span>
+                                <input type="number" class="form-control" id="buildIdInput" placeholder="Enter build ID">
+                                <button class="btn btn-outline-success" type="button" onclick="searchBuild()">Get Build Info</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="searchResults" style="display: none;">
+                    <h5><i class="fas fa-info-circle"></i> Search Results</h5>
+                    <div id="searchContent" class="table-responsive"></div>
+                </div>
+
+                <!-- Network Error Alert -->
+                <div id="networkError" class="alert vpn-alert" style="display: none;" role="alert">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Network Connection Error</h5>
+                    <div id="networkErrorMessage"></div>
+                    <hr>
+                    <div class="mb-0">
+                        <strong>Troubleshooting:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Check if you're connected to VPN</li>
+                            <li>Verify network connectivity to jenkins-mgt.dv-api.com</li>
+                            <li>Try refreshing the page after connecting to VPN</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loading" class="text-center" style="display: none;">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading Jenkins information...</p>
+                </div>
+
+                <!-- Jobs Summary Table -->
+                <h5><i class="fas fa-list"></i> All Jobs Summary</h5>
+                <button class="btn btn-primary mb-3" onclick="loadJobs()">
+                    <i class="fas fa-sync-alt"></i> Refresh Jobs
+                </button>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Job Name</th>
+                                <th>Latest Build</th>
+                                <th>Latest Success</th>
+                                <th>Status</th>
+                                <th>Last Build Time</th>
+                                <th>Commit</th>
+                                <th>Actions</th>
+                                <th>Latest Parameters</th>
+                                <th>Jenkinsfile</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobsTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center">Click "Refresh Jobs" to load data</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Build with Parameters Modal -->
+    <div class="modal fade" id="buildModal" tabindex="-1" aria-labelledby="buildModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="buildModalLabel">
+                        <i class="fas fa-play"></i> Build with Parameters
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs" id="buildTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="form-tab" data-bs-toggle="tab" data-bs-target="#form-pane" type="button" role="tab" aria-controls="form-pane" aria-selected="true">
+                                <i class="fas fa-list"></i> Parameter Form
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="string-tab" data-bs-toggle="tab" data-bs-target="#string-pane" type="button" role="tab" aria-controls="string-pane" aria-selected="false">
+                                <i class="fas fa-code"></i> Parameter String
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="buildTabsContent">
+                        <!-- Parameter Form Tab -->
+                        <div class="tab-pane fade show active" id="form-pane" role="tabpanel" aria-labelledby="form-tab">
+                            <div id="buildModalContent" class="mt-3">
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Loading parameters...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Parameter String Tab -->
+                        <div class="tab-pane fade" id="string-pane" role="tabpanel" aria-labelledby="string-tab">
+                            <div class="mt-3">
+                                <h6><i class="fas fa-code"></i> Build with Parameter String</h6>
+                                <p class="small text-muted">Enter parameters as string format: KEY1=value1, KEY2=value2, ...</p>
+                                
+                                <!-- Copy Latest Parameters Button -->
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="copyLatestParamsToString()" id="copyLatestBtn">
+                                        <i class="fas fa-copy"></i> Copy Latest Parameters
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearParameterString()">
+                                        <i class="fas fa-trash"></i> Clear
+                                    </button>
+                                </div>
+                                
+                                <!-- Parameter String Input -->
+                                <div class="input-group">
+                                    <textarea class="form-control" id="parameterStringInput" rows="4" placeholder="SERVICE_NAME=admin-ui, REPO_TO_SYNC=datavisor, BRANCH=main, TAG=latest"></textarea>
+                                </div>
+                                
+                                <!-- String Build Result -->
+                                <div id="stringBuildResult" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="triggerFormBuildBtn" onclick="triggerBuild()" style="display: block;">
+                        <i class="fas fa-play"></i> Start Build (Form)
+                    </button>
+                    <button type="button" class="btn btn-success" id="triggerStringBuildBtn" onclick="triggerStringBuild()" style="display: none;">
+                        <i class="fas fa-rocket"></i> Start Build (String)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Environment management
+        let currentEnvironment = null;
+        let environments = {};
+        
+        // Load environments on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEnvironments();
+        });
+        
+        function loadEnvironments() {
+            fetch('/api/environments')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error loading environments:', data.error);
+                        return;
+                    }
+                    
+                    environments = data.environments;
+                    currentEnvironment = data.current;
+                    
+                    updateEnvironmentUI();
+                })
+                .catch(error => {
+                    console.error('Error loading environments:', error);
+                    document.getElementById('currentEnvironmentName').textContent = 'Error Loading';
+                });
+        }
+        
+        function updateEnvironmentUI() {
+            // Update current environment display
+            document.getElementById('currentEnvironmentName').textContent = currentEnvironment.name;
+            
+            // Build dropdown menu
+            const menu = document.getElementById('environmentDropdownMenu');
+            menu.innerHTML = '';
+            
+            // Add environment options
+            Object.keys(environments).forEach(envKey => {
+                const envName = environments[envKey];
+                const isActive = envKey === currentEnvironment.key;
+                
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <a class="dropdown-item environment-item ${isActive ? 'active' : ''}" 
+                       href="#" onclick="switchEnvironment('${envKey}')">
+                        <div>
+                            <i class="fas fa-${isActive ? 'check-circle' : 'server'}"></i>
+                            ${envName}
+                        </div>
+                        <div class="environment-status">
+                            ${isActive ? 'Current Environment' : 'Click to switch'}
+                        </div>
+                    </a>
+                `;
+                menu.appendChild(li);
+            });
+            
+            // Add separator and environment info
+            if (Object.keys(environments).length > 0) {
+                const separator = document.createElement('li');
+                separator.innerHTML = '<hr class="dropdown-divider">';
+                menu.appendChild(separator);
+                
+                const infoLi = document.createElement('li');
+                infoLi.innerHTML = `
+                    <span class="dropdown-item-text">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            Current: ${currentEnvironment.url}
+                        </small>
+                    </span>
+                `;
+                menu.appendChild(infoLi);
+            }
+        }
+        
+        function switchEnvironment(environment) {
+            if (environment === currentEnvironment.key) {
+                return; // Already on this environment
+            }
+            
+            // Show switching state
+            document.body.classList.add('switching-environment');
+            document.getElementById('currentEnvironmentName').innerHTML = 
+                '<i class="fas fa-spinner fa-spin"></i> Switching...';
+            
+            fetch('/api/switch-environment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ environment: environment })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.body.classList.remove('switching-environment');
+                
+                if (data.success) {
+                    currentEnvironment = data.environment;
+                    updateEnvironmentUI();
+                    
+                    // Show success message
+                    showEnvironmentMessage(data.message, 'success');
+                    
+                    // Clear any existing data and reload
+                    document.getElementById('jobsTableBody').innerHTML = 
+                        '<tr><td colspan="9" class="text-center">Environment switched. Click "Refresh Jobs" to load data</td></tr>';
+                    document.getElementById('searchResults').style.display = 'none';
+                    document.getElementById('networkError').style.display = 'none';
+                } else {
+                    showEnvironmentMessage(data.error || 'Failed to switch environment', 'error');
+                    // Restore current environment name
+                    document.getElementById('currentEnvironmentName').textContent = currentEnvironment.name;
+                }
+            })
+            .catch(error => {
+                document.body.classList.remove('switching-environment');
+                console.error('Error switching environment:', error);
+                showEnvironmentMessage('Network error while switching environment', 'error');
+                // Restore current environment name
+                document.getElementById('currentEnvironmentName').textContent = currentEnvironment.name;
+            });
+        }
+        
+        function showEnvironmentMessage(message, type) {
+            // Create or update environment message
+            let messageDiv = document.getElementById('environmentMessage');
+            if (!messageDiv) {
+                messageDiv = document.createElement('div');
+                messageDiv.id = 'environmentMessage';
+                messageDiv.className = 'alert alert-dismissible fade show';
+                messageDiv.style.position = 'fixed';
+                messageDiv.style.top = '20px';
+                messageDiv.style.right = '20px';
+                messageDiv.style.zIndex = '9999';
+                messageDiv.style.minWidth = '300px';
+                document.body.appendChild(messageDiv);
+            }
+            
+            messageDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            messageDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (messageDiv) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+        
+
+        
+        // Removed expandable parameters functionality - now showing full parameter strings directly
+
+        function getStatusClass(status) {
+            if (!status) return 'status-unknown';
+            switch(status.toUpperCase()) {
+                case 'SUCCESS': return 'status-success';
+                case 'FAILURE': return 'status-failure';
+                case 'UNSTABLE': return 'status-unstable';
+                case 'ABORTED': return 'status-aborted';
+                case 'RUNNING': return 'status-running';
+                case 'PENDING': return 'status-pending';
+                default: return 'status-unknown';
+            }
+        }
+
+        function getStatusIcon(status) {
+            if (!status) return 'fas fa-question-circle';
+            switch(status.toUpperCase()) {
+                case 'SUCCESS': return 'fas fa-check-circle';
+                case 'FAILURE': return 'fas fa-times-circle';
+                case 'UNSTABLE': return 'fas fa-exclamation-triangle';
+                case 'ABORTED': return 'fas fa-stop-circle';
+                case 'RUNNING': return 'fas fa-spinner fa-spin';
+                case 'PENDING': return 'fas fa-clock';
+                default: return 'fas fa-question-circle';
+            }
+        }
+
+        function generateActionButtons(job) {
+            let buttons = '';
+            
+            if (job.jenkins_url) {
+                buttons += `<a href="${job.jenkins_url}" target="_blank" class="btn btn-sm btn-outline-primary" title="Jenkins Job">
+                    <i class="fas fa-external-link-alt"></i>
+                </a> `;
+            }
+            
+            if (job.console_url) {
+                buttons += `<a href="${job.console_url}" target="_blank" class="btn btn-sm btn-outline-info" title="Console Log">
+                    <i class="fas fa-terminal"></i>
+                </a> `;
+            }
+            
+            if (job.replay_url) {
+                buttons += `<a href="${job.replay_url}" target="_blank" class="btn btn-sm btn-outline-warning" title="Replay">
+                    <i class="fas fa-redo"></i>
+                </a> `;
+            }
+            
+            if (job.parameters_url) {
+                buttons += `<a href="${job.parameters_url}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Parameters">
+                    <i class="fas fa-cog"></i>
+                </a> `;
+            }
+            
+            return buttons;
+        }
+
+        function loadJobs() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('networkError').style.display = 'none';
+            document.getElementById('jobsTableBody').innerHTML = '<tr><td colspan="9" class="text-center">Loading...</td></tr>';
+            
+            fetch('/api/jobs')
+                .then(response => response.json())
+                .then(jobs => {
+                    document.getElementById('loading').style.display = 'none';
+                    const tbody = document.getElementById('jobsTableBody');
+                    
+                    if (jobs.error) {
+                        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error: ${jobs.error}</td></tr>`;
+                        return;
+                    }
+                    
+                    if (jobs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No jobs found</td></tr>';
+                        return;
+                    }
+                    
+                    // Check for network connection errors
+                    const hasNetworkError = jobs.some(job => job.job_name === 'CONNECTION_ERROR');
+                    if (hasNetworkError) {
+                        const errorJob = jobs.find(job => job.job_name === 'CONNECTION_ERROR');
+                        document.getElementById('networkErrorMessage').innerHTML = `
+                            <div class="error-description">${errorJob.description}</div>
+                        `;
+                        document.getElementById('networkError').style.display = 'block';
+                        
+                        // Remove the error job from display and show a simplified message
+                        jobs = jobs.filter(job => job.job_name !== 'CONNECTION_ERROR');
+                        if (jobs.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-warning">⚠️ Cannot connect to Jenkins server. Please check network/VPN connection.</td></tr>';
+                            return;
+                        }
+                    }
+                    
+                    // Check if jobs have folder information
+                    const hasFolders = jobs.some(job => job.folder_name && job.folder_name !== '');
+                    
+                    if (hasFolders) {
+                        // Group jobs by folder
+                        const jobsByFolder = jobs.reduce((groups, job) => {
+                            const folderName = job.folder_name || 'Ungrouped';
+                            if (!groups[folderName]) {
+                                groups[folderName] = {
+                                    jobs: [],
+                                    description: job.folder_description || '',
+                                    icon: job.folder_icon || 'fas fa-folder'
+                                };
+                            }
+                            groups[folderName].jobs.push(job);
+                            return groups;
+                        }, {});
+                        
+                        let html = '';
+                        Object.keys(jobsByFolder).forEach(folderName => {
+                            const folder = jobsByFolder[folderName];
+                            
+                            // Add folder header row with collapse functionality
+                            const folderId = folderName.replace(/\s+/g, '-').toLowerCase();
+                            html += `
+                                <tr class="folder-header" onclick="toggleFolder('${folderId}')" style="cursor: pointer;">
+                                    <td colspan="9" class="folder-title bg-primary text-white">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="${folder.icon}"></i>
+                                                <strong>${folderName}</strong>
+                                                <span class="badge bg-light text-dark ms-2">${folder.jobs.length} pipelines</span>
+                                                ${folder.description ? `<br><small class="text-light">${folder.description}</small>` : ''}
+                                            </div>
+                                            <div class="folder-toggle">
+                                                <i class="fas fa-chevron-down" id="toggle-${folderId}"></i>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                            
+                            // Add jobs in this folder
+                            folder.jobs.forEach((job, index) => {
+                                const jobId = job.job_name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+                                
+                                // Main job row with expand toggle
+                                html += `
+                                    <tr class="pipeline-row folder-content-${folderId} ${job.description && job.description.includes('ERROR') ? 'table-warning' : ''}" data-pipeline-order="${job.pipeline_order || 0}">
+                                        <td class="pipeline-cell">
+                                            <div class="d-flex align-items-center">
+                                                <span class="pipeline-order badge bg-secondary me-2 order-${job.pipeline_order || (index + 1)}">${job.pipeline_order || (index + 1)}</span>
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-center">
+                                <strong>${job.job_name}</strong>
+                                                        <button class="btn btn-sm btn-outline-secondary ms-2 job-expand-btn" 
+                                                                onclick="toggleJobBuilds('${jobId}')" 
+                                                                title="Show recent 5 builds">
+                                                            <i class="fas fa-chevron-down" id="job-toggle-${jobId}"></i>
+                                                            <span class="badge bg-primary ms-1">${job.recent_builds ? job.recent_builds.length : 0}</span>
+                                                        </button>
+                                                    </div>
+                                ${job.description ? `<br><small class="${job.description.includes('ERROR') ? 'text-danger fw-bold' : 'text-muted'}">${job.description.includes('ERROR') ? '⚠️ ' + job.description : job.description}</small>` : ''}
+                                                </div>
+                                            </div>
+                            </td>
+                            <td>${job.latest_build_id || 'N/A'}</td>
+                            <td>${job.latest_success_build_id || 'N/A'}</td>
+                            <td>
+                                <span class="${getStatusClass(job.latest_build_status)}">
+                                    <i class="${getStatusIcon(job.latest_build_status)}"></i>
+                                    ${job.latest_build_status || 'Unknown'}
+                                </span>
+                            </td>
+                            <td>${job.latest_build_timestamp || 'N/A'}</td>
+                            <td>
+                                ${job.latest_commit_short ? 
+                                    `<code title="Full commit: ${job.latest_commit_id}">${job.latest_commit_short}</code>` : 
+                                    'N/A'}
+                            </td>
+                            <td>
+                                ${generateActionButtons(job)} 
+                                <button class="btn btn-sm btn-success" onclick="showBuildModal('${job.job_name}', '${job.latest_build_parameters ? job.latest_build_parameters.replace(/'/g, "\\'") : ''}')" title="Build with Parameters">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                ${job.latest_build_parameters && job.latest_build_parameters !== 'No parameters' ? 
+                                    `<button class="btn btn-sm btn-primary" onclick="buildWithLatestParams('${job.job_name}', \`${job.latest_build_parameters ? job.latest_build_parameters.replace(/`/g, "\\`").replace(/\$/g, "\\$") : ''}\`)" title="Build with Latest Parameters">
+                                        <i class="fas fa-rocket"></i>
+                                    </button>` : 
+                                    ''
+                                }
+                            </td>
+                            <td>
+                                <div class="parameter-cell">
+                                    <code class="small parameter-text">
+                                                    ${job.latest_build_parameters || 'No parameters'}
+                                                </code>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            ${job.jenkinsfile_path && job.jenkinsfile_path !== 'Not found' ? 
+                                                `<code>${job.jenkinsfile_path}</code>` + 
+                                                (job.github_url ? ` <a href="${job.github_url}" target="_blank" class="btn btn-sm btn-outline-dark" title="GitHub"><i class="fab fa-github"></i></a>` : '') 
+                                                : 'Not found'}
+                                        </td>
+                                    </tr>
+                                `;
+                                
+                                // Recent builds rows (initially hidden)
+                                if (job.recent_builds && job.recent_builds.length > 0) {
+                                    job.recent_builds.forEach((build, buildIndex) => {
+                                        if (build.error) {
+                                            html += `
+                                                <tr class="job-build-row job-builds-${jobId} folder-content-${folderId}" style="display: none;">
+                                                    <td class="ps-5">
+                                                        <small class="text-danger">
+                                                            <i class="fas fa-exclamation-triangle"></i> Build #${build.id}: ${build.error}
+                                                        </small>
+                                                    </td>
+                                                    <td colspan="8" class="text-muted small">Error loading build details</td>
+                                                </tr>
+                                            `;
+                                        } else {
+                                            html += `
+                                                <tr class="job-build-row job-builds-${jobId} folder-content-${folderId}" style="display: none;">
+                                                    <td class="ps-5">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-arrow-right"></i> Build #${build.id}
+                                                        </small>
+                                                    </td>
+                                                    <td colspan="2">
+                                                        <span class="${getStatusClass(build.status)} small">
+                                                            <i class="${getStatusIcon(build.status)}"></i>
+                                                            ${build.status || 'Unknown'}
+                                                        </span>
+                                                    </td>
+                                                    <td><small>${build.timestamp || 'N/A'}</small></td>
+                                                    <td><small>${build.duration || 'N/A'}</small></td>
+                                                    <td>
+                                                        <small class="text-primary">
+                                                            <i class="fas fa-user"></i> ${build.user || 'Unknown'}
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <small>
+                                                            ${build.console_url ? `<a href="${build.console_url}" target="_blank" class="btn btn-xs btn-outline-info" title="Console Log"><i class="fas fa-terminal"></i></a> ` : ''}
+                                                            ${build.replay_url ? `<a href="${build.replay_url}" target="_blank" class="btn btn-xs btn-outline-warning" title="Replay"><i class="fas fa-redo"></i></a> ` : ''}
+                                                            ${build.build_url ? `<a href="${build.build_url}" target="_blank" class="btn btn-xs btn-outline-primary" title="Build Details"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <div class="parameter-cell">
+                                                            <small class="text-muted">
+                                                                <code class="small parameter-text">${build.parameters || 'No parameters'}</code>
+                                                            </small>
+                                                        </div>
+                                                    </td>
+                                                    <td><small class="text-muted">History</small></td>
+                                                </tr>
+                                            `;
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Add spacing row between folders
+                            html += `<tr class="folder-separator folder-content-${folderId}"><td colspan="9" style="height: 10px; border: none;"></td></tr>`;
+                        });
+                        
+                        tbody.innerHTML = html;
+                    } else {
+                        // Fallback to legacy flat structure with job expansion
+                        let html = '';
+                        jobs.forEach(job => {
+                            const jobId = job.job_name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+                            
+                            // Main job row
+                            html += `
+                                <tr ${job.description && job.description.includes('ERROR') ? 'class="table-warning"' : ''}>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center">
+                                                    <strong>${job.job_name}</strong>
+                                                    <button class="btn btn-sm btn-outline-secondary ms-2 job-expand-btn" 
+                                                            onclick="toggleJobBuilds('${jobId}')" 
+                                                            title="Show recent 5 builds">
+                                                        <i class="fas fa-chevron-down" id="job-toggle-${jobId}"></i>
+                                                        <span class="badge bg-primary ms-1">${job.recent_builds ? job.recent_builds.length : 0}</span>
+                                                    </button>
+                                                </div>
+                                                ${job.description ? `<br><small class="${job.description.includes('ERROR') ? 'text-danger fw-bold' : 'text-muted'}">${job.description.includes('ERROR') ? '⚠️ ' + job.description : job.description}</small>` : ''}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>${job.latest_build_id || 'N/A'}</td>
+                                    <td>${job.latest_success_build_id || 'N/A'}</td>
+                                    <td>
+                                        <span class="${getStatusClass(job.latest_build_status)}">
+                                            <i class="${getStatusIcon(job.latest_build_status)}"></i>
+                                            ${job.latest_build_status || 'Unknown'}
+                                        </span>
+                                    </td>
+                                    <td>${job.latest_build_timestamp || 'N/A'}</td>
+                                    <td>
+                                        ${job.latest_commit_short ? 
+                                            `<code title="Full commit: ${job.latest_commit_id}">${job.latest_commit_short}</code>` : 
+                                            'N/A'}
+                                    </td>
+                                    <td>
+                                        ${generateActionButtons(job)} 
+                                        <button class="btn btn-sm btn-success" onclick="showBuildModal('${job.job_name}', '${job.latest_build_parameters ? job.latest_build_parameters.replace(/'/g, "\\'") : ''}')" title="Build with Parameters">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        ${job.latest_build_parameters && job.latest_build_parameters !== 'No parameters' ? 
+                                            `<button class="btn btn-sm btn-primary" onclick="buildWithLatestParams('${job.job_name}', \`${job.latest_build_parameters ? job.latest_build_parameters.replace(/`/g, "\\`").replace(/\$/g, "\\$") : ''}\`)" title="Build with Latest Parameters">
+                                                <i class="fas fa-rocket"></i>
+                                            </button>` : 
+                                            ''
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="parameter-cell">
+                                            <code class="small parameter-text">
+                                                ${job.latest_build_parameters || 'No parameters'}
+                                    </code>
+                                </div>
+                            </td>
+                            <td>
+                                ${job.jenkinsfile_path && job.jenkinsfile_path !== 'Not found' ? 
+                                    `<code>${job.jenkinsfile_path}</code>` + 
+                                    (job.github_url ? ` <a href="${job.github_url}" target="_blank" class="btn btn-sm btn-outline-dark" title="GitHub"><i class="fab fa-github"></i></a>` : '') 
+                                    : 'Not found'}
+                            </td>
+                        </tr>
+                            `;
+                            
+                            // Recent builds rows (initially hidden)
+                            if (job.recent_builds && job.recent_builds.length > 0) {
+                                job.recent_builds.forEach((build, buildIndex) => {
+                                    if (build.error) {
+                                        html += `
+                                            <tr class="job-build-row job-builds-${jobId}" style="display: none;">
+                                                <td class="ps-5">
+                                                    <small class="text-danger">
+                                                        <i class="fas fa-exclamation-triangle"></i> Build #${build.id}: ${build.error}
+                                                    </small>
+                                                </td>
+                                                <td colspan="8" class="text-muted small">Error loading build details</td>
+                                            </tr>
+                                        `;
+                                    } else {
+                                        html += `
+                                            <tr class="job-build-row job-builds-${jobId}" style="display: none;">
+                                                <td class="ps-5">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-arrow-right"></i> Build #${build.id}
+                                                    </small>
+                                                </td>
+                                                <td colspan="2">
+                                                    <span class="${getStatusClass(build.status)} small">
+                                                        <i class="${getStatusIcon(build.status)}"></i>
+                                                        ${build.status || 'Unknown'}
+                                                    </span>
+                                                </td>
+                                                <td><small>${build.timestamp || 'N/A'}</small></td>
+                                                <td><small>${build.duration || 'N/A'}</small></td>
+                                                <td>
+                                                    <small class="text-primary">
+                                                        <i class="fas fa-user"></i> ${build.user || 'Unknown'}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        ${build.console_url ? `<a href="${build.console_url}" target="_blank" class="btn btn-xs btn-outline-info" title="Console Log"><i class="fas fa-terminal"></i></a> ` : ''}
+                                                        ${build.replay_url ? `<a href="${build.replay_url}" target="_blank" class="btn btn-xs btn-outline-warning" title="Replay"><i class="fas fa-redo"></i></a> ` : ''}
+                                                        ${build.build_url ? `<a href="${build.build_url}" target="_blank" class="btn btn-xs btn-outline-primary" title="Build Details"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div class="parameter-cell">
+                                                        <small class="text-muted">
+                                                            <code class="small parameter-text">${build.parameters || 'No parameters'}</code>
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td><small class="text-muted">History</small></td>
+                                            </tr>
+                                        `;
+                                    }
+                                });
+                            }
+                        });
+                        tbody.innerHTML = html;
+                    }
+                    
+                    // Expandable parameters functionality removed - showing full strings directly
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('jobsTableBody').innerHTML = 
+                        `<tr><td colspan="9" class="text-center text-danger">Error loading jobs: ${error}</td></tr>`;
+                });
+        }
+
+        function searchJob() {
+            const jobName = document.getElementById('jobNameInput').value.trim();
+            if (!jobName) {
+                alert('Please enter a job name');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            fetch(`/api/job/${encodeURIComponent(jobName)}/recent-builds`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (data.error) {
+                        document.getElementById('searchContent').innerHTML = 
+                            `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                    } else {
+                        const builds = data.builds || [];
+                        let tableHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6><i class="fas fa-history"></i> Recent Builds for: <strong>${data.job_name}</strong></h6>
+                                <button class="btn btn-sm btn-success" onclick="showBuildModal('${data.job_name}', '')" title="Build with Parameters">
+                                    <i class="fas fa-play"></i> New Build
+                                </button>
+                            </div>
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Build ID</th>
+                                        <th>Status</th>
+                                        <th>Time</th>
+                                        <th>Duration</th>
+                                        <th>User</th>
+                                        <th>Parameters</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        
+                        if (builds.length === 0) {
+                            tableHTML += `
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No builds found for this job</td>
+                                </tr>
+                            `;
+                        } else {
+                            builds.forEach(build => {
+                                if (build.error) {
+                                    tableHTML += `
+                                        <tr class="table-warning">
+                                            <td>${build.id}</td>
+                                            <td><span class="text-danger"><i class="fas fa-exclamation-triangle"></i> ERROR</span></td>
+                                            <td colspan="5"><small class="text-danger">⚠️ ${build.error}</small></td>
+                                        </tr>
+                                    `;
+                                } else {
+                                    tableHTML += `
+                                        <tr>
+                                            <td><strong>#${build.id}</strong></td>
+                                            <td>
+                                                <span class="${getStatusClass(build.status)}">
+                                                    <i class="${getStatusIcon(build.status)}"></i>
+                                                    ${build.status || 'Unknown'}
+                                                </span>
+                                            </td>
+                                            <td>${build.timestamp || 'N/A'}</td>
+                                            <td>${build.duration || 'N/A'}</td>
+                                            <td>
+                                                <span class="small text-primary">
+                                                    <i class="fas fa-user"></i> ${build.user || 'Unknown'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="parameter-cell">
+                                                    <span class="text-muted small parameter-text">
+                                                        <code>${build.parameters || 'No parameters'}</code>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                ${build.console_url ? `<a href="${build.console_url}" target="_blank" class="btn btn-sm btn-outline-info" title="Console Log"><i class="fas fa-terminal"></i></a> ` : ''}
+                                                ${build.replay_url ? `<a href="${build.replay_url}" target="_blank" class="btn btn-sm btn-outline-warning" title="Replay"><i class="fas fa-redo"></i></a> ` : ''}
+                                                ${build.parameters_url ? `<a href="${build.parameters_url}" target="_blank" class="btn btn-sm btn-outline-secondary" title="View Parameters"><i class="fas fa-list"></i></a> ` : ''}
+                                                ${build.build_url ? `<a href="${build.build_url}" target="_blank" class="btn btn-sm btn-outline-primary" title="Build Details"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                                            </td>
+                                        </tr>
+                                    `;
+                                }
+                            });
+                        }
+                        
+                        tableHTML += `
+                                </tbody>
+                            </table>
+                            
+                            <!-- Quick Build with Parameters -->
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <h6><i class="fas fa-rocket"></i> Quick Build with Parameters</h6>
+                                <p class="small text-muted">Enter parameters as string format: KEY1=value1, KEY2=value2, ...</p>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="quickParamsInput" placeholder="SERVICE_NAME=admin-ui, REPO_TO_SYNC=datavisor, BRANCH=main, TAG=latest">
+                                    <button class="btn btn-primary" onclick="triggerQuickBuild('${data.job_name}')" id="quickBuildBtn">
+                                        <i class="fas fa-play"></i> Quick Build
+                                    </button>
+                                </div>
+                                <div id="quickBuildResult"></div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('searchContent').innerHTML = tableHTML;
+                        
+                        // Expandable parameters functionality removed - showing full strings directly
+                    }
+                    
+                    document.getElementById('searchResults').style.display = 'block';
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('searchContent').innerHTML = 
+                        `<div class="alert alert-danger">Error: ${error}</div>`;
+                    document.getElementById('searchResults').style.display = 'block';
+                });
+        }
+
+        function searchBuild() {
+            const jobName = document.getElementById('jobNameInput').value.trim();
+            const buildId = document.getElementById('buildIdInput').value.trim();
+            
+            if (!jobName || !buildId) {
+                alert('Please enter both job name and build ID');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            fetch(`/api/build/${encodeURIComponent(jobName)}/${encodeURIComponent(buildId)}`)
+                .then(response => response.json())
+                .then(build => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (build.error) {
+                        document.getElementById('searchContent').innerHTML = 
+                            `<div class="alert alert-danger">Error: ${build.error}</div>`;
+                    } else {
+                        document.getElementById('searchContent').innerHTML = `
+                            <table class="table table-bordered">
+                                <tr><th>Build URL</th><td><a href="${build.build_url}" target="_blank">${build.build_url}</a></td></tr>
+                                <tr><th>Console URL</th><td><a href="${build.console_url}" target="_blank">${build.console_url}</a></td></tr>
+                                <tr><th>Replay URL</th><td><a href="${build.replay_url}" target="_blank">${build.replay_url}</a></td></tr>
+                                <tr><th>Parameters URL</th><td><a href="${build.parameters_url}" target="_blank">${build.parameters_url}</a></td></tr>
+                                <tr><th>Status</th><td><span class="${getStatusClass(build.status)}"><i class="${getStatusIcon(build.status)}"></i> ${build.status || 'Unknown'}</span></td></tr>
+                                <tr><th>Timestamp</th><td>${build.timestamp || 'N/A'}</td></tr>
+                                <tr><th>Parameters</th><td><code>${build.parameters || 'No parameters'}</code></td></tr>
+                            </table>
+                            
+                            <!-- Build with Parameters String for Build Result -->
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <h6><i class="fas fa-rocket"></i> Rebuild with Parameters</h6>
+                                <p class="small text-muted">Modify parameters and rebuild: KEY1=value1, KEY2=value2, ...</p>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="quickParamsInput" value="${build.parameters ? build.parameters.replace(/([^=]+)=([^,]+)/g, '$1=$2').replace(/, /g, ', ') : ''}" placeholder="SERVICE_NAME=admin-ui, REPO_TO_SYNC=datavisor, BRANCH=main, TAG=latest">
+                                    <button class="btn btn-primary" onclick="triggerQuickBuild('${jobName}')" id="quickBuildBtn">
+                                        <i class="fas fa-redo"></i> Rebuild
+                                    </button>
+                                </div>
+                                <div id="quickBuildResult"></div>
+                            </div>
+                        `;
+                    }
+                    
+                    document.getElementById('searchResults').style.display = 'block';
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('searchContent').innerHTML = 
+                        `<div class="alert alert-danger">Error: ${error}</div>`;
+                    document.getElementById('searchResults').style.display = 'block';
+                });
+        }
+
+        // Build with Parameters functionality
+        let currentJobName = '';
+        let currentParameters = [];
+        let currentLatestParams = '';
+
+        function showBuildModal(jobName, latestParams = '') {
+            currentJobName = jobName;
+            currentLatestParams = latestParams;
+            document.getElementById('buildModalLabel').innerHTML = 
+                `<i class="fas fa-play"></i> Build with Parameters - ${jobName}`;
+            
+            // Reset tabs to first tab
+            document.getElementById('form-tab').click();
+            
+            // Clear previous content
+            document.getElementById('parameterStringInput').value = '';
+            document.getElementById('stringBuildResult').innerHTML = '';
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('buildModal'));
+            modal.show();
+            
+            // Load parameters
+            loadJobParameters(jobName);
+        }
+        
+        function buildWithLatestParams(jobName, latestParams) {
+            console.log('buildWithLatestParams called:', jobName, latestParams);
+            
+            if (!latestParams || latestParams === 'No parameters') {
+                showEnvironmentMessage('No latest parameters available for this job', 'error');
+                return;
+            }
+            
+            // Confirm before building
+            if (confirm(`Build "${jobName}" with latest parameters?\n\n${latestParams}`)) {
+                // Parse latest parameters using improved parsing logic
+                const parsedParams = {};
+                
+                // Handle complex parameter strings including JSON values
+                try {
+                    // Split by comma but be careful about commas inside JSON objects
+                    const paramPairs = [];
+                    let currentParam = '';
+                    let braceCount = 0;
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < latestParams.length; i++) {
+                        const char = latestParams[i];
+                        
+                        if (char === '"' && (i === 0 || latestParams[i-1] !== '\\')) {
+                            inQuotes = !inQuotes;
+                        }
+                        
+                        if (!inQuotes) {
+                            if (char === '{') braceCount++;
+                            else if (char === '}') braceCount--;
+                        }
+                        
+                        if (char === ',' && braceCount === 0 && !inQuotes) {
+                            paramPairs.push(currentParam.trim());
+                            currentParam = '';
+                        } else {
+                            currentParam += char;
+                        }
+                    }
+                    
+                    if (currentParam.trim()) {
+                        paramPairs.push(currentParam.trim());
+                    }
+                    
+                    // Parse each parameter pair
+                    paramPairs.forEach(param => {
+                        const equalIndex = param.indexOf('=');
+                        if (equalIndex > 0) {
+                            const key = param.substring(0, equalIndex).trim();
+                            const value = param.substring(equalIndex + 1).trim();
+                            parsedParams[key] = value;
+                        }
+                    });
+                    
+                    console.log('Parsed parameters:', parsedParams);
+                    
+                } catch (error) {
+                    console.error('Error parsing parameters:', error);
+                    showEnvironmentMessage(`Parameter parsing error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                // Trigger build
+                fetch(`/api/job/${encodeURIComponent(jobName)}/build`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(parsedParams)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showEnvironmentMessage(`Build failed: ${data.error}`, 'error');
+                    } else {
+                        showEnvironmentMessage(`Build ${data.buildNumber || 'started'} triggered successfully!`, 'success');
+                        // Refresh the table after a short delay
+                        setTimeout(loadJobs, 2000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Build request error:', error);
+                    showEnvironmentMessage(`Build error: ${error}`, 'error');
+                });
+            }
+        }
+
+        function loadJobParameters(jobName) {
+            document.getElementById('buildModalContent').innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading parameters...</p>
+                </div>
+            `;
+            
+            fetch(`/api/job/${encodeURIComponent(jobName)}/parameters`)
+                .then(response => response.json())
+                .then(parameters => {
+                    currentParameters = parameters;
+                    displayParameters(parameters);
+                })
+                .catch(error => {
+                    document.getElementById('buildModalContent').innerHTML = 
+                        `<div class="alert alert-danger">Error loading parameters: ${error}</div>`;
+                });
+        }
+
+        function displayParameters(parameters) {
+            if (parameters.length === 0) {
+                document.getElementById('buildModalContent').innerHTML = 
+                    '<div class="alert alert-info">This job has no parameters.</div>';
+                return;
+            }
+
+            let html = '<form id="parametersForm">';
+            
+            parameters.forEach((param, index) => {
+                html += `
+                    <div class="mb-3">
+                        <label for="param_${index}" class="form-label">
+                            <strong>${param.name}</strong>
+                            ${param.description ? `<br><small class="text-muted">${param.description}</small>` : ''}
+                        </label>
+                `;
+                
+                if (param.choices && param.choices.length > 0) {
+                    // Choice parameter
+                    html += `<select class="form-select" id="param_${index}" name="${param.name}">`;
+                    param.choices.forEach(choice => {
+                        const selected = choice === param.defaultValue ? 'selected' : '';
+                        html += `<option value="${choice}" ${selected}>${choice}</option>`;
+                    });
+                    html += '</select>';
+                } else if (param.type === 'boolean') {
+                    // Boolean parameter
+                    const checked = param.defaultValue === 'true' ? 'checked' : '';
+                    html += `<div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="param_${index}" name="${param.name}" ${checked}>
+                        <label class="form-check-label" for="param_${index}">Enable</label>
+                    </div>`;
+                } else {
+                    // String/text parameter
+                    html += `<input type="text" class="form-control" id="param_${index}" name="${param.name}" value="${param.defaultValue || ''}" placeholder="Enter ${param.name}">`;
+                }
+                
+                html += '</div>';
+            });
+            
+            html += '</form>';
+            document.getElementById('buildModalContent').innerHTML = html;
+        }
+
+        function triggerBuild() {
+            const form = document.getElementById('parametersForm');
+            if (!form) {
+                // No parameters, trigger build directly
+                executeBuild({});
+                return;
+            }
+
+            const formData = new FormData(form);
+            const parameters = {};
+            
+            currentParameters.forEach((param, index) => {
+                const element = document.getElementById(`param_${index}`);
+                if (element) {
+                    if (param.type === 'boolean') {
+                        parameters[param.name] = element.checked ? 'true' : 'false';
+                    } else {
+                        parameters[param.name] = element.value;
+                    }
+                }
+            });
+
+            executeBuild(parameters);
+        }
+
+        function executeBuild(parameters) {
+            // Disable build button
+            const btn = document.getElementById('triggerFormBuildBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Starting...';
+
+            fetch(`/api/job/${encodeURIComponent(currentJobName)}/build`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parameters)
+            })
+            .then(response => response.json())
+            .then(result => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Start Build (Form)';
+                
+                if (result.success) {
+                    // Close modal and show success message
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('buildModal'));
+                    modal.hide();
+                    
+                    showEnvironmentMessage(`Build triggered successfully for ${currentJobName}!`, 'success');
+                    
+                    // Refresh jobs table to show new build
+                    setTimeout(loadJobs, 2000);
+                } else {
+                    showEnvironmentMessage(`Failed to trigger build: ${result.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Start Build (Form)';
+                showEnvironmentMessage(`Error triggering build: ${error}`, 'error');
+            });
+        }
+
+        // Quick Build with Parameters String
+        function triggerQuickBuild(jobName) {
+            const paramsInput = document.getElementById('quickParamsInput');
+            const buildBtn = document.getElementById('quickBuildBtn');
+            const resultDiv = document.getElementById('quickBuildResult');
+            
+            if (!paramsInput || !buildBtn) {
+                alert('Error: UI elements not found');
+                return;
+            }
+            
+            const paramString = paramsInput.value.trim();
+            
+            // Disable button and show loading
+            buildBtn.disabled = true;
+            const originalText = buildBtn.innerHTML;
+            buildBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Building...';
+            resultDiv.innerHTML = '';
+            
+            fetch(`/api/job/${encodeURIComponent(jobName)}/build-string`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ parameters: paramString })
+            })
+                .then(response => response.json())
+                .then(result => {
+                    buildBtn.disabled = false;
+                    buildBtn.innerHTML = originalText;
+                    
+                    if (result.success) {
+                        resultDiv.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> <strong>Build triggered successfully!</strong>
+                                <br><strong>Job:</strong> ${jobName}
+                                <br><strong>Parsed Parameters:</strong> <code>${JSON.stringify(result.parsed_parameters)}</code>
+                                <br><a href="${result.job_url}" target="_blank" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-external-link-alt"></i> View Job in Jenkins
+                                </a>
+                            </div>
+                        `;
+                        
+                        // Optionally reload jobs table after a delay
+                        setTimeout(() => {
+                            if (confirm('Reload jobs table to see updated status?')) {
+                                loadJobs();
+                            }
+                        }, 2000);
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle"></i> <strong>Build failed to trigger</strong>
+                                <br><strong>Error:</strong> ${result.message}
+                                ${result.details ? `<br><strong>Details:</strong> ${result.details}` : ''}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    buildBtn.disabled = false;
+                    buildBtn.innerHTML = originalText;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> <strong>Error:</strong> ${error}
+                        </div>
+                    `;
+                });
+        }
+
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            loadJobs();
+            
+            // Add event listeners for tab switching
+            const formTab = document.getElementById('form-tab');
+            const stringTab = document.getElementById('string-tab');
+            
+            if (formTab && stringTab) {
+                formTab.addEventListener('click', function() {
+                    const formBtn = document.getElementById('triggerFormBuildBtn');
+                    const stringBtn = document.getElementById('triggerStringBuildBtn');
+                    if (formBtn) formBtn.style.display = 'block';
+                    if (stringBtn) stringBtn.style.display = 'none';
+                });
+                
+                stringTab.addEventListener('click', function() {
+                    const formBtn = document.getElementById('triggerFormBuildBtn');
+                    const stringBtn = document.getElementById('triggerStringBuildBtn');
+                    if (formBtn) formBtn.style.display = 'none';
+                    if (stringBtn) stringBtn.style.display = 'block';
+                });
+            }
+        });
+        
+        function copyLatestParamsToString() {
+            if (!currentLatestParams || currentLatestParams === 'No parameters') {
+                showEnvironmentMessage('No latest parameters available to copy', 'error');
+                return;
+            }
+            
+            const input = document.getElementById('parameterStringInput');
+            if (input) {
+                input.value = currentLatestParams;
+                showEnvironmentMessage('Latest parameters copied to string input!', 'success');
+            }
+        }
+        
+        function clearParameterString() {
+            const input = document.getElementById('parameterStringInput');
+            const result = document.getElementById('stringBuildResult');
+            if (input) input.value = '';
+            if (result) result.innerHTML = '';
+        }
+        
+        function triggerStringBuild() {
+            const paramString = document.getElementById('parameterStringInput').value.trim();
+            const buildBtn = document.getElementById('triggerStringBuildBtn');
+            const resultDiv = document.getElementById('stringBuildResult');
+            
+            if (!paramString) {
+                showEnvironmentMessage('Please enter parameters', 'error');
+                return;
+            }
+            
+            buildBtn.disabled = true;
+            buildBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Building...';
+            
+            fetch(`/api/job/${encodeURIComponent(currentJobName)}/build-string`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ parameters: paramString })
+            })
+            .then(response => response.json())
+            .then(data => {
+                buildBtn.disabled = false;
+                buildBtn.innerHTML = '<i class="fas fa-rocket"></i> Start Build (String)';
+                
+                if (data.error) {
+                    resultDiv.innerHTML = 
+                        `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                } else {
+                    resultDiv.innerHTML = 
+                        `<div class="alert alert-success">✅ Build ${data.buildNumber || 'started'} triggered successfully!</div>`;
+                    
+                    // Show success message and close modal after delay
+                    showEnvironmentMessage(`Build ${data.buildNumber || 'started'} triggered successfully!`, 'success');
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('buildModal'));
+                        if (modal) modal.hide();
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                buildBtn.disabled = false;
+                buildBtn.innerHTML = '<i class="fas fa-rocket"></i> Start Build (String)';
+                resultDiv.innerHTML = 
+                    `<div class="alert alert-danger">Error: ${error}</div>`;
+            });
+        }
+        
+        // Folder collapse functionality
+        function toggleFolder(folderId) {
+            // Prevent event bubbling
+            event.stopPropagation();
+            
+            // Find all content rows for this folder
+            const contentRows = document.querySelectorAll(`.folder-content-${folderId}`);
+            const toggleIcon = document.getElementById(`toggle-${folderId}`);
+            const folderHeader = document.querySelector(`[onclick="toggleFolder('${folderId}')"]`);
+            
+            // Check current state
+            const isCollapsed = folderHeader && folderHeader.getAttribute('data-collapsed') === 'true';
+            
+            // Toggle content visibility
+            contentRows.forEach(row => {
+                if (isCollapsed) {
+                    // Show content
+                    row.style.display = '';
+                    row.classList.remove('collapsed');
+                } else {
+                    // Hide content
+                    row.style.display = 'none';
+                    row.classList.add('collapsed');
+                }
+            });
+            
+            // Update header state
+            if (folderHeader) {
+                folderHeader.setAttribute('data-collapsed', !isCollapsed);
+            }
+            
+            // Rotate arrow icon
+            if (toggleIcon) {
+                if (isCollapsed) {
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                } else {
+                    toggleIcon.style.transform = 'rotate(-90deg)';
+                }
+            }
+        }
+        
+        // Initialize all folders as expanded (default state)
+        function initializeFolders() {
+            // Set all folders to expanded state
+            const folderHeaders = document.querySelectorAll('.folder-header[onclick*="toggleFolder"]');
+            folderHeaders.forEach(header => {
+                header.setAttribute('data-collapsed', 'false');
+            });
+            
+            // Set all toggle icons to down position
+            const toggleIcons = document.querySelectorAll('[id^="toggle-"]');
+            toggleIcons.forEach(icon => {
+                icon.style.transform = 'rotate(0deg)';
+            });
+        }
+        
+        // Job builds expansion functionality
+        function toggleJobBuilds(jobId) {
+            // Prevent event bubbling
+            event.stopPropagation();
+            
+            // Find all build rows for this job
+            const buildRows = document.querySelectorAll(`.job-builds-${jobId}`);
+            const toggleButton = document.querySelector(`#job-toggle-${jobId}`).parentElement;
+            const toggleIcon = document.querySelector(`#job-toggle-${jobId}`);
+            
+            // Check current state
+            const isExpanded = toggleButton.getAttribute('data-expanded') === 'true';
+            
+            // Toggle build rows visibility
+            buildRows.forEach(row => {
+                if (isExpanded) {
+                    // Hide builds
+                    row.style.display = 'none';
+                } else {
+                    // Show builds
+                    row.style.display = '';
+                }
+            });
+            
+            // Update button state
+            toggleButton.setAttribute('data-expanded', !isExpanded);
+            
+            // Rotate arrow icon
+            if (toggleIcon) {
+                if (isExpanded) {
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                } else {
+                    toggleIcon.style.transform = 'rotate(-180deg)';
+                }
+            }
+        }
+        
+        // Initialize all job builds as collapsed (default state)
+        function initializeJobBuilds() {
+            // Set all job expand buttons to collapsed state
+            const jobExpandButtons = document.querySelectorAll('.job-expand-btn');
+            jobExpandButtons.forEach(button => {
+                button.setAttribute('data-expanded', 'false');
+            });
+            
+            // Set all toggle icons to down position
+            const jobToggleIcons = document.querySelectorAll('[id^="job-toggle-"]');
+            jobToggleIcons.forEach(icon => {
+                icon.style.transform = 'rotate(0deg)';
+            });
+            
+            // Hide all job build rows initially
+            const buildRows = document.querySelectorAll('.job-build-row');
+            buildRows.forEach(row => {
+                row.style.display = 'none';
+            });
+        }
+        
+        // Auto-initialize folders and job builds after jobs are loaded
+        const originalLoadJobs = loadJobs;
+        loadJobs = function() {
+            originalLoadJobs();
+            // Wait for DOM to update, then initialize folders and job builds
+            setTimeout(() => {
+                initializeFolders();
+                initializeJobBuilds();
+            }, 100);
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-mgt-config
+  namespace: default
+data:
+  jobs_config.yaml: |
+    # Jenkins Jobs Configuration
+    # Multi-environment support for new and old Jenkins instances
+
+    environments:
+      current:
+        name: "Jenkins (jenkins.example.com)"
+        jenkins:
+          url: "http://jenkins.example.com"
+          username: "your_username"
+          token: "your_api_token"
+
+    # Default environment
+    default_environment: "current"
+
+    folders:
+      # Build Image Pipeline Chain
+      - name: "Build Image Pipeline"
+        description: "Complete Docker image build pipeline chain"
+        icon: "fas fa-docker"
+        order: 1
+        pipelines:
+          - name: "global-entrypoint"
+            description: "Global entrypoint pipeline for multi-region deployment"
+            order: 1
+            
+          - name: "pre-process-general-build-docker-image"
+            description: "Pre-processing for Docker image builds"
+            order: 2
+            
+          - name: "general-build-docker-image"
+            description: "General Docker image build pipeline"
+            order: 3
+            
+          - name: "general-build-docker-image-fp"
+            description: "Feature Platform Docker image build"
+            order: 4
+            
+          - name: "build-charts"
+            description: "Helm charts build pipeline"
+            order: 5
+
+      # Deployment Pipeline Chain
+      - name: "Deployment Pipeline"
+        description: "Application deployment and management"
+        icon: "fas fa-rocket"
+        order: 2
+        pipelines:
+          - name: "continuous-deployment-mgt"
+            description: "Continuous deployment for management cluster"
+            order: 1
+
+      # Code Management Pipeline
+      - name: "Code Management"
+        description: "Code integration and management tools"
+        icon: "fas fa-code-branch"
+        order: 3
+        pipelines:
+          - name: "cherry-pick-code"
+            description: "Cherry-pick code across branches"
+            order: 1
+            
+          - name: "land-code-multiple-repo"
+            description: "Land code to multiple repositories"
+            order: 2
+
+      # Quality Assurance Pipeline
+      - name: "Quality Assurance"
+        description: "Code quality and testing tools"
+        icon: "fas fa-check-circle"
+        order: 4
+        pipelines:
+          - name: "dcluster-code-quality-check"
+            description: "Data cluster code quality gate check"
+            order: 1
+
+      # Standalone Jobs
+      - name: "Standalone Jobs"
+        description: "Independent utility jobs"
+        icon: "fas fa-tools"
+        order: 5
+        pipelines:
+          - name: "build-jenkins-docker"
+            description: "Jenkins Docker image build"
+            order: 1
+
+    # Legacy flat jobs list (for backward compatibility)
+    jobs:
+      # Global Jobs
+      - name: "global-entrypoint"
+        description: "Global entrypoint pipeline for multi-region deployment"
+        category: "global"
+        
+      # Build Jobs  
+      - name: "pre-process-general-build-docker-image"
+        description: "Pre-processing for Docker image builds"
+        category: "build"
+        
+      - name: "general-build-docker-image"
+        description: "General Docker image build pipeline"
+        category: "build"
+        
+      - name: "general-build-docker-image-fp"
+        description: "Feature Platform Docker image build"
+        category: "build"
+        
+      - name: "build-charts"
+        description: "Helm charts build pipeline"
+        category: "build"
+        
+      - name: "build-jenkins-docker"
+        description: "Jenkins Docker image build"
+        category: "build"
+        
+      # Deployment Jobs
+      - name: "continuous-deployment-mgt"
+        description: "Continuous deployment for management cluster"
+        category: "deployment"
+        
+      # Code Management Jobs
+      - name: "cherry-pick-code"
+        description: "Cherry-pick code across branches"
+        category: "code-mgmt"
+        
+      - name: "land-code-multiple-repo"
+        description: "Land code to multiple repositories"
+        category: "code-mgmt"
+        
+      # Quality Assurance Jobs
+      - name: "dcluster-code-quality-check"
+        description: "Data cluster code quality gate check"
+        category: "qa"
+
+    # Display Configuration
+    display:
+      refresh_interval: 30  # seconds
+      max_description_length: 100
+      show_categories: true
+      
+    # Add new jobs here following the same format:
+    # - name: "your-new-job-name"
+    #   description: "Description of what this job does"
+    #   category: "category-name" 

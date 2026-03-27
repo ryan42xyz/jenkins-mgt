@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-mgt
+  namespace: default
+  labels:
+    app: jenkins-mgt
+spec:
+  selector:
+    app: jenkins-mgt
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30050
+      name: http
+  type: NodePort 

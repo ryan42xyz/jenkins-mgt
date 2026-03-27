@@ -1,0 +1,62 @@
+# Jenkins Jobs Configuration
+# Copy this file to jobs_config.yaml and fill in your credentials.
+# jobs_config.yaml is gitignored — never commit real tokens.
+
+environments:
+  current:
+    name: "My Jenkins (jenkins.example.com)"
+    jenkins:
+      url: "http://jenkins.example.com"
+      username: "your_username"
+      token: "your_api_token"
+  # Add more environments as needed:
+  # legacy:
+  #   name: "Old Jenkins"
+  #   jenkins:
+  #     url: "http://old-jenkins.example.com"
+  #     username: "your_username"
+  #     token: "your_api_token"
+
+# Default environment key
+default_environment: "current"
+
+# Folder and pipeline organization
+folders:
+  - name: "Build Image Pipeline"
+    description: "Complete Docker image build pipeline chain"
+    icon: "fas fa-docker"
+    order: 1
+    pipelines:
+      - name: "global-entrypoint"
+        description: "Global entrypoint pipeline"
+        order: 1
+      - name: "general-build-docker-image"
+        description: "Docker image build pipeline"
+        order: 2
+
+  - name: "Deployment Pipeline"
+    description: "Application deployment and management"
+    icon: "fas fa-rocket"
+    order: 2
+    pipelines:
+      - name: "continuous-deployment"
+        description: "Continuous deployment pipeline"
+        order: 1
+
+# Legacy flat jobs list (for backward compatibility)
+jobs:
+  - name: "global-entrypoint"
+    description: "Global entrypoint pipeline"
+    category: "global"
+  - name: "general-build-docker-image"
+    description: "General Docker image build pipeline"
+    category: "build"
+  - name: "continuous-deployment"
+    description: "Continuous deployment pipeline"
+    category: "deployment"
+
+# Display Configuration
+display:
+  refresh_interval: 30  # seconds
+  max_description_length: 100
+  show_categories: true
